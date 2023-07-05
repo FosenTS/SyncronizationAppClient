@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
@@ -59,10 +60,19 @@ func main() {
 				log.Println("ReadMessage() error:", err)
 				return
 			}
-			log.Printf("Received: %s", message)
+
 			if strings.Contains(string(message), "Directory name: ") {
 				fmt.Println(string(message)[18:])
 				CreateDir(string(message)[18:])
+			}
+
+			if strings.Contains(string(message), "FileName:") {
+				fileName := string(message)[9:strings.Index(string(message), "FileBit:")]
+				fileBit := string(message)[strings.Index(string(message), "FileBit:")+8:]
+				os.Create(fileName)
+				if err := ioutil.WriteFile(fileName, []byte(fileBit), 0777); err != nil {
+					panic(err)
+				}
 			}
 		}
 	}()
@@ -102,7 +112,6 @@ func main() {
 }
 
 func CreateDir(name string) {
-
 	_, err := os.Stat(name)
 	if os.IsNotExist(err) {
 		if err := os.Mkdir(name, 0777); err != nil {
